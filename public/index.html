@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseMac • Hardware & Thermal Intelligence</title>
+  
+  <!-- PWA Manifest & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PulseMac">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/icons/icon-192.png">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Bar -->
+  <header class="top-header">
+    <div class="header-left">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <div class="brand-text">
+          <h1>PulseMac</h1>
+          <span class="brand-sub" id="sys-model-chip">Apple Silicon • macOS</span>
+        </div>
+      </div>
+      <div class="active-focus-pill" id="active-focus-pill" title="Currently frontmost focused application">
+        <span class="focus-dot"></span>
+        <span class="focus-label">Frontmost:</span>
+        <strong id="frontmost-app-name">Detecting...</strong>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="thermal-quick-badge" id="thermal-quick-badge">
+        <span class="badge-dot"></span>
+        <span id="quick-thermal-text">Thermals Nominal</span>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-sm btn-outline-cyan" id="pwa-install-btn" style="display: none;" title="Install as standalone macOS App">
+          <span class="icon">📲</span> Install App
+        </button>
+        <button class="icon-btn" id="sound-toggle-btn" title="Toggle Audio Chime on Alert">
+          <span class="icon" id="sound-icon">🔔</span>
+        </button>
+        <button class="icon-btn" id="notify-perm-btn" title="Enable macOS Desktop Notifications">
+          <span class="icon">💬</span>
+        </button>
+        <button class="icon-btn" id="settings-open-btn" title="Configure Alert Thresholds">
+          <span class="icon">⚙️</span>
+        </button>
+        <button class="unit-toggle-btn" id="unit-toggle-btn" title="Toggle °C / °F">
+          <span class="unit-active" id="unit-c">°C</span>
+          <span class="unit-divider">/</span>
+          <span class="unit-inactive" id="unit-f">°F</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Warning / Alert Banner -->
+  <aside class="alert-banner" id="global-alert-banner" style="display: none;">
+    <div class="alert-banner-content">
+      <div class="alert-icon-pulsing">⚠️</div>
+      <div class="alert-text-block">
+        <strong id="banner-alert-title">High Temperature Warning</strong>
+        <p id="banner-alert-desc">Sustained thermal climb detected.</p>
+      </div>
+      <div class="alert-actions">
+        <button class="btn btn-sm btn-danger" id="banner-culprit-action" style="display: none;">Inspect Culprit</button>
+        <button class="btn btn-sm btn-subtle" id="banner-dismiss-btn">Dismiss &amp; Reset Timer</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Dashboard Content -->
+  <main class="dashboard-container">
+    <!-- Top KPI Circular Gauges Row -->
+    <section class="gauge-grid">
+      <!-- CPU Gauge Card -->
+      <div class="kpi-card cpu-kpi">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-indicator cyan-glow"></span>
+            <span>CPU Load</span>
+          </div>
+          <span class="badge" id="cpu-core-count">10 Cores</span>
+        </div>
+        <div class="gauge-body">
+          <div class="gauge-ring-wrap">
+            <svg class="progress-ring" width="130" height="130">
+              <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="transparent" r="54" cx="65" cy="65" />
+              <circle class="ring-bar ring-cpu" id="ring-cpu" stroke="#00e5ff" stroke-width="8" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" fill="transparent" r="54" cx="65" cy="65" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-val" id="cpu-total-val">0%</span>
+              <span class="ring-label">Aggregate</span>
+            </div>
+          </div>
+          <div class="gauge-meta">
+            <div class="meta-row">
+              <span>User</span>
+              <strong id="cpu-user-val">0%</strong>
+            </div>
+            <div class="meta-row">
+              <span>System</span>
+              <strong id="cpu-sys-val">0%</strong>
+            </div>
+            <div class="meta-row">
+              <span>Load Avg</span>
+              <strong id="cpu-loadavg-val">0.0, 0.0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GPU Gauge Card -->
+      <div class="kpi-card gpu-kpi">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-indicator purple-glow"></span>
+            <span>GPU Metal</span>
+          </div>
+          <span class="badge" id="gpu-status-badge">Apple AGX</span>
+        </div>
+        <div class="gauge-body">
+          <div class="gauge-ring-wrap">
+            <svg class="progress-ring" width="130" height="130">
+              <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="transparent" r="54" cx="65" cy="65" />
+              <circle class="ring-bar ring-gpu" id="ring-gpu" stroke="#b388ff" stroke-width="8" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" fill="transparent" r="54" cx="65" cy="65" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-val" id="gpu-total-val">0%</span>
+              <span class="ring-label">Device Util</span>
+            </div>
+          </div>
+          <div class="gauge-meta">
+            <div class="meta-row">
+              <span>Renderer</span>
+              <strong id="gpu-renderer-val">0%</strong>
+            </div>
+            <div class="meta-row">
+              <span>Tiler</span>
+              <strong id="gpu-tiler-val">0%</strong>
+            </div>
+            <div class="meta-row">
+              <span>Alloc RAM</span>
+              <strong id="gpu-mem-val">0 MB</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NPU (Neural Engine) Gauge Card -->
+      <div class="kpi-card npu-kpi">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-indicator amber-glow"></span>
+            <span>NPU / ANE</span>
+          </div>
+          <span class="badge" id="npu-power-badge">Active</span>
+        </div>
+        <div class="gauge-body">
+          <div class="gauge-ring-wrap">
+            <svg class="progress-ring" width="130" height="130">
+              <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="transparent" r="54" cx="65" cy="65" />
+              <circle class="ring-bar ring-npu" id="ring-npu" stroke="#ffd166" stroke-width="8" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" fill="transparent" r="54" cx="65" cy="65" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-val" id="npu-total-val">0%</span>
+              <span class="ring-label">Dispatch</span>
+            </div>
+          </div>
+          <div class="gauge-meta">
+            <div class="meta-row">
+              <span>CoreML Daemons</span>
+              <strong id="npu-daemons-val">3 Active</strong>
+            </div>
+            <div class="meta-row">
+              <span>Inference Clients</span>
+              <strong id="npu-clients-val">0</strong>
+            </div>
+            <div class="meta-row">
+              <span>Hardware</span>
+              <strong id="npu-hw-val">Apple ANE</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thermal Intelligence Gauge Card -->
+      <div class="kpi-card thermal-kpi">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-indicator red-glow"></span>
+            <span>SoC Thermals</span>
+          </div>
+          <span class="badge badge-thermal" id="thermal-pressure-badge">Nominal</span>
+        </div>
+        <div class="gauge-body">
+          <div class="gauge-ring-wrap">
+            <svg class="progress-ring" width="130" height="130">
+              <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="transparent" r="54" cx="65" cy="65" />
+              <circle class="ring-bar ring-thermal" id="ring-thermal" stroke="#ff0054" stroke-width="8" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" fill="transparent" r="54" cx="65" cy="65" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-val thermal-glow-text" id="thermal-die-val">32°C</span>
+              <span class="ring-label" id="thermal-rate-val">±0.0°/5s</span>
+            </div>
+          </div>
+          <div class="gauge-meta">
+            <div class="meta-row">
+              <span>Battery Casing</span>
+              <strong id="thermal-battery-val">30.0°C</strong>
+            </div>
+            <div class="meta-row">
+              <span>PMU Virtual</span>
+              <strong id="thermal-virtual-val">31.0°C</strong>
+            </div>
+            <div class="meta-row">
+              <span>Power State</span>
+              <strong id="thermal-power-val">Battery (73%)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Persistent High-Temperature Watchdog Card -->
+    <section class="persistence-watchdog-card" id="persistence-watchdog-card">
+      <div class="watchdog-header">
+        <div class="watchdog-title">
+          <span class="watchdog-pulse-dot" id="watchdog-dot"></span>
+          <div>
+            <h4>Persistent High-Temp Watchdog</h4>
+            <span class="watchdog-condition" id="watchdog-condition-text">Condition: Above 68.0°C continuously for > 5.0 mins</span>
+          </div>
+        </div>
+        <div class="watchdog-actions">
+          <div class="watchdog-timer-badge">
+            <span class="timer-label">Persistent Duration:</span>
+            <strong id="watchdog-timer-text">0m 00s / 5m 00s</strong>
+          </div>
+          <button class="btn btn-sm btn-subtle" id="watchdog-reset-btn" title="Reset persistent countdown timer back to 0s">Reset Timer</button>
+        </div>
+      </div>
+      <div class="watchdog-bar-wrap">
+        <div class="watchdog-bar-fill" id="watchdog-bar-fill" style="width: 0%;"></div>
+      </div>
+      <div class="watchdog-footer">
+        <span id="watchdog-status-text">✅ Temperature is currently below threshold. No continuous heat spike.</span>
+        <span class="watchdog-sub" id="watchdog-sensor-tag">Monitoring: SoC Die Model (28s Thermal Inertia)</span>
+      </div>
+    </section>
+
+    <!-- Spike & Culprit Intelligence Spotlight Banner -->
+    <section class="culprit-spotlight-card" id="culprit-spotlight-card">
+      <div class="spotlight-header">
+        <div class="spotlight-title">
+          <span class="spotlight-icon" id="spotlight-status-icon">✨</span>
+          <div>
+            <h3>Thermal & Resource Attribution Intelligence</h3>
+            <p id="spotlight-narrative">Scanning real-time process energy & thermal signatures...</p>
+          </div>
+        </div>
+        <div class="spotlight-trend" id="spotlight-trend-badge">
+          <span>Trend: </span><strong id="spotlight-trend-text">STABLE</strong>
+        </div>
+      </div>
+
+      <div class="culprit-details-row" id="culprit-details-row" style="display: none;">
+        <div class="culprit-highlight">
+          <div class="culprit-label">Primary Spike Culprit</div>
+          <div class="culprit-entity">
+            <strong class="culprit-name" id="culprit-name">Google Chrome Helper</strong>
+            <span class="role-badge" id="culprit-role-badge">BACKGROUND APP</span>
+            <span class="pid-pill" id="culprit-pid">PID 1430</span>
+          </div>
+        </div>
+
+        <div class="culprit-stats">
+          <div class="culprit-stat-item">
+            <span class="cs-label">CPU Consumption</span>
+            <strong class="cs-val text-cyan" id="culprit-cpu">42.5%</strong>
+          </div>
+          <div class="culprit-stat-item">
+            <span class="cs-label">CPU Surge (Δ5s)</span>
+            <strong class="cs-val text-amber" id="culprit-delta-cpu">+18.2%</strong>
+          </div>
+          <div class="culprit-stat-item">
+            <span class="cs-label">Memory</span>
+            <strong class="cs-val text-emerald" id="culprit-mem">1.8%</strong>
+          </div>
+          <div class="culprit-stat-item">
+            <span class="cs-label">Thermal Score</span>
+            <strong class="cs-val text-crimson" id="culprit-score">58.4</strong>
+          </div>
+          <div class="culprit-stat-action">
+            <button class="btn btn-sm btn-outline-danger" id="culprit-terminate-btn">End Process</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts and Multi-Core Grid Layout -->
+    <div class="middle-grid">
+      <!-- Real-Time Rolling Timeline Chart -->
+      <section class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-title-wrap">
+            <h3>Hardware & Thermal Telemetry History</h3>
+            <span class="chart-subtitle">Rolling 60-Second Real-Time Sliding Window</span>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><span class="legend-dot bg-cyan"></span> CPU %</div>
+            <div class="legend-item"><span class="legend-dot bg-purple"></span> GPU %</div>
+            <div class="legend-item"><span class="legend-dot bg-crimson"></span> Temp (°C)</div>
+          </div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="telemetryCanvas" width="800" height="240"></canvas>
+        </div>
+      </section>
+
+      <!-- Multi-Core Bar Grid -->
+      <section class="cores-card">
+        <div class="cores-card-header">
+          <div class="cores-title-wrap">
+            <h3>Per-Core Load Matrix</h3>
+            <span class="cores-subtitle" id="core-matrix-label">10 Cores Active</span>
+          </div>
+          <span class="badge" id="cpu-cluster-badge">Apple M5</span>
+        </div>
+        <div class="cores-matrix-grid" id="cores-matrix-grid">
+          <!-- Dynamically populated core bars -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Process Table & Culprit Inspector -->
+    <section class="process-card">
+      <div class="process-card-header">
+        <div class="process-title-group">
+          <h3>Active Processes & Impact Attribution</h3>
+          <p class="process-subtitle">Live energy, CPU, and thermal contribution across foreground and background apps</p>
+        </div>
+
+        <div class="process-controls">
+          <div class="filter-pills" id="filter-pills">
+            <button class="filter-pill active" data-filter="all">All (40)</button>
+            <button class="filter-pill" data-filter="foreground">Foreground Only</button>
+            <button class="filter-pill" data-filter="background">Background Apps</button>
+            <button class="filter-pill" data-filter="daemon">System Daemons</button>
+          </div>
+
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="proc-search-input" placeholder="Filter by app name or PID..." autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="process-table" id="process-table">
+          <thead>
+            <tr>
+              <th data-sort="name">Process Name</th>
+              <th data-sort="type">Execution Role</th>
+              <th data-sort="pid">PID</th>
+              <th data-sort="cpu" class="sort-active desc">CPU %</th>
+              <th data-sort="mem">RAM %</th>
+              <th data-sort="impactScore">Thermal Impact</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="process-table-body">
+            <!-- Dynamic process rows -->
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">Gathering real-time process metrics...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Settings & Thresholds Modal -->
+  <div class="modal-backdrop" id="settings-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>PulseMac Alert & Thermal Settings</h3>
+        <button class="close-modal-btn" id="settings-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label for="temp-thresh-slider">
+            <span>Temperature Alert Threshold</span>
+            <strong class="text-amber" id="temp-thresh-display">68°C</strong>
+          </label>
+          <input type="range" id="temp-thresh-slider" min="30" max="95" step="1" value="68">
+          <p class="setting-desc">Alert condition is monitored continuously against this target temperature.</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="duration-slider">
+            <span>Required Persistent Duration</span>
+            <strong class="text-cyan" id="duration-display">5.0 Mins</strong>
+          </label>
+          <input type="range" id="duration-slider" min="0.5" max="30" step="0.5" value="5.0">
+          <p class="setting-desc">Alert triggers <strong>only</strong> after remaining above threshold continuously for this timespan.</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="sensor-mode-select">
+            <span>Temperature Evaluation Source</span>
+          </label>
+          <select id="sensor-mode-select" class="custom-select">
+            <option value="die">SoC Silicon Die (Realistic 28s Thermal Inertia Model)</option>
+            <option value="raw">Raw Apple PMU Sensor (Direct Unfiltered Kernel Reading)</option>
+          </select>
+          <p class="setting-desc">Choose between physically-modeled junction temperature or raw unmodeled chassis PMU reading.</p>
+        </div>
+
+        <div class="setting-group toggle-group">
+          <div>
+            <strong>Play Audio Chime on High Temp</strong>
+            <p class="setting-desc">Plays a pleasant modern warning pulse through the browser.</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="sound-checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-group toggle-group">
+          <div>
+            <strong>macOS Desktop Notifications</strong>
+            <p class="setting-desc">Sends native banners when temperature surges unexpectedly.</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="notify-checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-subtle" id="test-sound-btn">Preview Sound</button>
+        <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminate Confirmation Modal -->
+  <div class="modal-backdrop" id="kill-modal" style="display: none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3>Terminate Process?</h3>
+        <button class="close-modal-btn" id="kill-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to terminate <strong id="kill-target-name">Process</strong> (<span id="kill-target-pid">PID</span>)?</p>
+        <p class="text-muted text-sm mt-2">Unsaved work in this application may be lost.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-subtle" id="kill-cancel-btn">Cancel</button>
+        <button class="btn btn-danger" id="kill-confirm-btn">Terminate Process</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>PulseMac • Precision Apple Silicon & macOS Telemetry</span>
+      <span class="sep">•</span>
+      <span id="system-uptime">Uptime: 0h</span>
+      <span class="sep">•</span>
+      <span>Live Event Stream Active</span>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

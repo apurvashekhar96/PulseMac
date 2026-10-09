@@ -1,0 +1,33 @@
+{
+  "name": "pulsemac",
+  "version": "1.0.0",
+  "description": "Ultra-sleek macOS Hardware & Thermal Intelligence Monitor with Foreground/Background Spike Attribution",
+  "main": "server.mjs",
+  "type": "module",
+  "bin": {
+    "pulsemac": "./bin/cli.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs --open",
+    "serve": "node server.mjs",
+    "tui": "node bin/cli.mjs --tui",
+    "dev": "node server.mjs --open"
+  },
+  "keywords": [
+    "macOS",
+    "hardware-monitor",
+    "apple-silicon",
+    "cpu",
+    "gpu",
+    "npu",
+    "temperature",
+    "thermal",
+    "dashboard"
+  ],
+  "author": "Apurva Shekhar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apurvashekhar96/PulseMac.git"
+  },
+  "license": "MIT"
+}
